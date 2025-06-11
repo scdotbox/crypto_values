@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>双币赢收益计算器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 280px;
+            background-color: #555;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -140px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        .tab-button.active {
+            border-color: #3b82f6;
+            color: #3b82f6;
+            background-color: #eff6ff;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-4xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">双币赢收益计算器</h1>
+            <p class="mt-2 text-gray-600">模拟双币投资策略，洞察潜在收益与风险。</p>
+        </header>
+
+        <!-- Tabs -->
+        <div class="mb-6 border-b border-gray-200">
+            <nav class="flex space-x-4" aria-label="Tabs">
+                <button id="tab1-button" class="tab-button active text-sm font-medium py-3 px-4 border-b-2 border-transparent hover:border-gray-300 hover:text-gray-700 whitespace-nowrap">
+                    收益与机会成本分析
+                </button>
+                <button id="tab2-button" class="tab-button text-sm font-medium py-3 px-4 border-b-2 border-transparent hover:border-gray-300 hover:text-gray-700 whitespace-nowrap">
+                    盈亏平衡价格分析
+                </button>
+            </nav>
+        </div>
+
+        <!-- Calculator Content -->
+        <main id="main-content">
+            <!-- Tab 1: Profit & Opportunity Cost Calculator -->
+            <div id="calculator1" class="space-y-6">
+                <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800">1. 输入参数</h2>
+                    
+                    <!-- Strategy Toggle -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">选择策略</label>
+                        <div class="flex rounded-md shadow-sm">
+                            <button id="sell-high-btn" class="flex-1 p-2 rounded-l-md border border-gray-300 bg-blue-500 text-white z-10">高价卖出</button>
+                            <button id="buy-low-btn" class="flex-1 p-2 rounded-r-md border border-gray-300 bg-white">低价买入</button>
+                        </div>
+                    </div>
+                    
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="invest-amount" class="block text-sm font-medium text-gray-700">投入数量</label>
+                            <div class="mt-1 relative rounded-md shadow-sm">
+                                <input type="number" id="invest-amount" class="block w-full p-2 border-gray-300 rounded-md" placeholder="例如: 1" value="1">
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <span id="invest-currency" class="text-gray-500 sm:text-sm">BTC</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="target-price" class="block text-sm font-medium text-gray-700">目标价格 (挂钩价)</label>
+                             <div class="mt-1 relative rounded-md shadow-sm">
+                                <input type="number" id="target-price" class="block w-full p-2 border-gray-300 rounded-md" placeholder="例如: 55000" value="109000">
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <span id="target-currency-label" class="text-gray-500 sm:text-sm">USDT</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="apy" class="block text-sm font-medium text-gray-700">年化收益率 (APY)</label>
+                            <div class="mt-1 relative rounded-md shadow-sm">
+                                <input type="number" id="apy" class="block w-full p-2 border-gray-300 rounded-md" placeholder="例如: 12" value="12">
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500 sm:text-sm">%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="duration" class="block text-sm font-medium text-gray-700">投资期限</label>
+                             <div class="mt-1 relative rounded-md shadow-sm">
+                                <input type="number" id="duration" class="block w-full p-2 border-gray-300 rounded-md" placeholder="例如: 30" value="30">
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500 sm:text-sm">天</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="md:col-span-2">
+                             <label for="settlement-price" class="block text-sm font-medium text-gray-700">
+                                预期结算价格
+                                <span class="tooltip text-gray-400 cursor-pointer">(?)
+                                    <span class="tooltiptext">这是您预测在投资到期日时，市场上的实际价格。它将决定您的投资最终如何结算。</span>
+                                </span>
+                            </label>
+                            <div class="mt-1 relative rounded-md shadow-sm">
+                                <input type="number" id="settlement-price" class="block w-full p-2 border-gray-300 rounded-md" placeholder="例如: 60000" value="100000">
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <span id="settlement-currency-label" class="text-gray-500 sm:text-sm">USDT</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                     <div class="mt-6">
+                        <button id="calculate-btn1" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 transition duration-300">
+                            计算收益
+                        </button>
+                    </div>
+                </div>
+
+                <div id="result1" class="hidden bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800">2. 计算结果</h2>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-md">
+                            <span class="font-medium text-gray-600">结算结果</span>
+                            <span id="outcome-status" class="font-bold text-lg text-blue-600"></span>
+                        </div>
+                        <div class="flex justify-between items-center p-3">
+                            <span class="font-medium text-gray-600">收到资产及数量</span>
+                            <span id="final-asset" class="font-semibold text-gray-900"></span>
+                        </div>
+                         <div class="flex justify-between items-center p-3 bg-gray-50 rounded-md">
+                            <span class="font-medium text-gray-600">收到资产总价值 (按结算价)</span>
+                            <span id="final-value" class="font-semibold text-gray-900"></span>
+                        </div>
+                         <div class="flex justify-between items-center p-3">
+                            <span class="font-medium text-gray-600">
+                                相较于现货市场操作
+                                <span class="tooltip text-gray-400 cursor-pointer">(?)
+                                    <span id="comparison-tooltip" class="tooltiptext">正数（绿色）表示双币投资优于直接在市场操作。负数（红色）表示直接市场操作更优（即机会成本）。</span>
+                                </span>
+                            </span>
+                            <span id="comparison-value" class="font-bold text-lg"></span>
+                        </div>
+                         <div id="hodl-comparison" class="text-sm text-center text-gray-500 pt-4 border-t mt-4"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Break-even Price Calculator -->
+            <div id="calculator2" class="hidden space-y-6">
+                 <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800">分析与您的投资策略相匹配的关键价格点</h2>
+                    <p class="text-sm text-gray-600 mb-6">此功能无需输入“预期结算价格”，它将反向计算出对您策略最关键的价格阈值。请先在上方设置好您的策略、目标价、APY等参数。</p>
+                    <button id="calculate-btn2" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 transition duration-300">
+                        分析关键价格
+                    </button>
+                 </div>
+                 <div id="result2" class="hidden bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                     <div id="breakeven-sell-high" class="hidden space-y-4">
+                        <h3 class="text-lg font-semibold text-gray-800">“高价卖出”策略关键价格</h3>
+                        <div class="p-4 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg">
+                            <p class="font-medium text-blue-800">优于“持有不动”的价格上限</p>
+                            <p id="sell-high-breakeven-price" class="text-2xl font-bold text-blue-600 my-2"></p>
+                            <p class="text-sm text-blue-700">如果结算价格<strong class="font-bold">高于</strong>此价格，那么直接持有原始资产（例如BTC）的最终价值会更高。反之，如果结算价格在此价格之下（但仍高于您的目标价），双币投资策略的收益更优。</p>
+                        </div>
+                     </div>
+                     <div id="breakeven-buy-low" class="hidden space-y-4">
+                        <h3 class="text-lg font-semibold text-gray-800">“低价买入”策略关键价格</h3>
+                        <div class="p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg">
+                            <p class="font-medium text-red-800">保本结算价格 (按投入法币价值)</p>
+                            <p id="buy-low-breakeven-price" class="text-2xl font-bold text-red-600 my-2"></p>
+                            <p class="text-sm text-red-700">如果结算时市场价格<strong class="font-bold">低于</strong>此价格，您收到的新资产（例如BTC）按法币计价的总价值，将<strong class="font-bold">低于</strong>您最初投入的本金（例如USDT）。这是衡量您买入后是否“立即浮亏”的关键点。</p>
+                        </div>
+                     </div>
+                 </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const tab1Button = document.getElementById('tab1-button');
+        const tab2Button = document.getElementById('tab2-button');
+        const calculator1 = document.getElementById('calculator1');
+        const calculator2 = document.getElementById('calculator2');
+        
+        const sellHighBtn = document.getElementById('sell-high-btn');
+        const buyLowBtn = document.getElementById('buy-low-btn');
+        const investAmountInput = document.getElementById('invest-amount');
+        const targetPriceInput = document.getElementById('target-price');
+        const apyInput = document.getElementById('apy');
+        const durationInput = document.getElementById('duration');
+        const settlementPriceInput = document.getElementById('settlement-price');
+
+        const investCurrencyLabel = document.getElementById('invest-currency');
+        const targetCurrencyLabel = document.getElementById('target-currency-label');
+        const settlementCurrencyLabel = document.getElementById('settlement-currency-label');
+        
+        const calculateBtn1 = document.getElementById('calculate-btn1');
+        const calculateBtn2 = document.getElementById('calculate-btn2');
+        const result1Div = document.getElementById('result1');
+        const result2Div = document.getElementById('result2');
+        
+        const outcomeStatusEl = document.getElementById('outcome-status');
+        const finalAssetEl = document.getElementById('final-asset');
+        const finalValueEl = document.getElementById('final-value');
+        const comparisonValueEl = document.getElementById('comparison-value');
+        const comparisonTooltipEl = document.getElementById('comparison-tooltip');
+        const hodlComparisonEl = document.getElementById('hodl-comparison');
+        
+        const breakevenSellHighDiv = document.getElementById('breakeven-sell-high');
+        const breakevenBuyLowDiv = document.getElementById('breakeven-buy-low');
+        const sellHighBreakevenPriceEl = document.getElementById('sell-high-breakeven-price');
+        const buyLowBreakevenPriceEl = document.getElementById('buy-low-breakeven-price');
+
+        let currentStrategy = 'sell-high'; // 'sell-high' or 'buy-low'
+
+        // --- Utility Functions ---
+        const formatCurrency = (value, currency = 'USDT') => {
+            return `${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
+        };
+
+        const formatAsset = (value, currency) => {
+            const digits = currency === 'USDT' ? 2 : 8;
+            return `${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: digits })} ${currency}`;
+        };
+
+        // --- UI Logic ---
+        function updateUIForStrategy() {
+            if (currentStrategy === 'sell-high') {
+                sellHighBtn.classList.add('bg-blue-500', 'text-white', 'z-10');
+                sellHighBtn.classList.remove('bg-white');
+                buyLowBtn.classList.remove('bg-blue-500', 'text-white', 'z-10');
+                buyLowBtn.classList.add('bg-white');
+                
+                investCurrencyLabel.textContent = 'BTC';
+                targetCurrencyLabel.textContent = 'USDT';
+                settlementCurrencyLabel.textContent = 'USDT';
+                comparisonTooltipEl.textContent = "该数值代表双币投资策略与【直接持有BTC并在结算时按市价卖出】相比的最终价值差异。正数（绿色）表示双币投资更优。";
+
+            } else { // buy-low
+                buyLowBtn.classList.add('bg-blue-500', 'text-white', 'z-10');
+                buyLowBtn.classList.remove('bg-white');
+                sellHighBtn.classList.remove('bg-blue-500', 'text-white', 'z-10');
+                sellHighBtn.classList.add('bg-white');
+
+                investCurrencyLabel.textContent = 'USDT';
+                targetCurrencyLabel.textContent = 'USDT'; // Still refers to the price of BTC in USDT
+                settlementCurrencyLabel.textContent = 'USDT';
+                comparisonTooltipEl.textContent = "该数值代表双币投资策略与【直接持有USDT并在结算时按市价买入BTC】相比的最终价值差异。正数（绿色）表示双币投资更优。";
+            }
+            result1Div.classList.add('hidden'); // Hide results on strategy change
+        }
+
+        function switchTab(tab) {
+            if (tab === 'tab1') {
+                tab1Button.classList.add('active');
+                tab2Button.classList.remove('active');
+                calculator1.style.display = 'block';
+                calculator2.style.display = 'none';
+            } else {
+                tab2Button.classList.add('active');
+                tab1Button.classList.remove('active');
+                calculator2.style.display = 'block';
+                calculator1.style.display = 'none';
+            }
+        }
+
+        // --- Event Listeners ---
+        sellHighBtn.addEventListener('click', () => {
+            currentStrategy = 'sell-high';
+            updateUIForStrategy();
+        });
+
+        buyLowBtn.addEventListener('click', () => {
+            currentStrategy = 'buy-low';
+            updateUIForStrategy();
+        });
+        
+        tab1Button.addEventListener('click', () => switchTab('tab1'));
+        tab2Button.addEventListener('click', () => switchTab('tab2'));
+
+        calculateBtn1.addEventListener('click', calculateProfit);
+        calculateBtn2.addEventListener('click', calculateBreakeven);
+
+
+        // --- Calculation Logic ---
+        function getInputs() {
+            return {
+                amount: parseFloat(investAmountInput.value) || 0,
+                targetPrice: parseFloat(targetPriceInput.value) || 0,
+                apy: parseFloat(apyInput.value) || 0,
+                duration: parseFloat(durationInput.value) || 0,
+                settlementPrice: parseFloat(settlementPriceInput.value) || 0,
+            };
+        }
+
+        function calculateProfit() {
+            const i = getInputs();
+            if (i.amount <= 0 || i.targetPrice <= 0 || i.duration <= 0 || i.settlementPrice <= 0) {
+                alert('请输入所有有效的参数');
+                return;
+            }
+
+            result1Div.classList.remove('hidden');
+            
+            if (currentStrategy === 'sell-high') {
+                calculateSellHighProfit(i);
+            } else {
+                calculateBuyLowProfit(i);
+            }
+        }
+        
+        function calculateSellHighProfit(i) {
+            const interestInBTC = i.amount * (i.apy / 100) * (i.duration / 365);
+            const baselineValue = i.amount * i.settlementPrice;
+            let dualInvestValue = 0;
+            let comparisonValue = 0;
+            
+            if (i.settlementPrice >= i.targetPrice) {
+                // Sell at target price
+                const totalBTCToConvert = i.amount + interestInBTC;
+                const finalUSDT = totalBTCToConvert * i.targetPrice;
+                dualInvestValue = finalUSDT;
+
+                outcomeStatusEl.textContent = '达到目标价，卖出BTC';
+                finalAssetEl.textContent = formatAsset(finalUSDT, 'USDT');
+                finalValueEl.textContent = formatCurrency(finalUSDT, 'USDT');
+                
+                hodlComparisonEl.textContent = `作为对比，若您仅持有 ${i.amount} BTC，其在结算时的价值为 ${formatCurrency(baselineValue, 'USDT')}。`;
+
+            } else {
+                // Keep BTC
+                const finalBTC = i.amount + interestInBTC;
+                dualInvestValue = finalBTC * i.settlementPrice;
+
+                outcomeStatusEl.textContent = '未达到目标价，保留BTC';
+                finalAssetEl.textContent = formatAsset(finalBTC, 'BTC');
+                finalValueEl.textContent = formatCurrency(dualInvestValue, 'USDT');
+                
+                hodlComparisonEl.textContent = `作为对比，若您仅持有 ${i.amount} BTC，其在结算时的价值为 ${formatCurrency(baselineValue, 'USDT')}。您因利息获得了额外的价值。`;
+            }
+
+            comparisonValue = dualInvestValue - baselineValue;
+            displayComparison(comparisonValue);
+        }
+        
+        function calculateBuyLowProfit(i) {
+            const interestInUSDT = i.amount * (i.apy / 100) * (i.duration / 365);
+            const totalCapital = i.amount + interestInUSDT;
+            let dualInvestValue = 0;
+            let baselineValue = 0;
+            let comparisonValue = 0;
+            
+             if (i.settlementPrice <= i.targetPrice) {
+                // Buy at target price
+                const finalBTC = totalCapital / i.targetPrice;
+                dualInvestValue = finalBTC * i.settlementPrice;
+                baselineValue = i.amount; // Baseline is holding USDT
+
+                outcomeStatusEl.textContent = '达到目标价，买入BTC';
+                finalAssetEl.textContent = formatAsset(finalBTC, 'BTC');
+                finalValueEl.textContent = formatCurrency(dualInvestValue, 'USDT');
+                
+                const marketBuyBTC = i.amount / i.settlementPrice;
+                hodlComparisonEl.textContent = `作为对比，若您用 ${formatCurrency(i.amount, 'USDT')} 在市场上以结算价直接购买，您将得到约 ${formatAsset(marketBuyBTC, 'BTC')}。`;
+                
+                // For comparison, the baseline is what you could have done with the *total capital* at market price.
+                const baselineSpotBuyValue = totalCapital;
+                comparisonValue = dualInvestValue - baselineSpotBuyValue;
+
+
+             } else {
+                // Keep USDT
+                const finalUSDT = totalCapital;
+                dualInvestValue = finalUSDT;
+                baselineValue = i.amount; // Baseline is holding initial USDT
+                comparisonValue = dualInvestValue - baselineValue; // This is simply the interest earned
+
+                outcomeStatusEl.textContent = '未达到目标价，保留USDT';
+                finalAssetEl.textContent = formatAsset(finalUSDT, 'USDT');
+                finalValueEl.textContent = formatCurrency(finalUSDT, 'USDT');
+                
+                hodlComparisonEl.textContent = `您赚取了 ${formatCurrency(interestInUSDT, 'USDT')} 的利息，但错失了BTC价格上涨的机会。`;
+             }
+
+             displayComparison(comparisonValue);
+        }
+
+        function displayComparison(value) {
+            comparisonValueEl.textContent = formatCurrency(value, 'USDT');
+            if (value >= 0) {
+                comparisonValueEl.className = 'font-bold text-lg text-green-500';
+                comparisonValueEl.textContent = '+' + comparisonValueEl.textContent;
+            } else {
+                comparisonValueEl.className = 'font-bold text-lg text-red-500';
+            }
+        }
+
+        function calculateBreakeven() {
+             const i = getInputs();
+             if (i.amount <= 0 || i.targetPrice <= 0 || i.duration <= 0) {
+                alert('请输入有效的策略参数（无需填写预期结算价）');
+                return;
+            }
+
+            result2Div.classList.remove('hidden');
+
+            if (currentStrategy === 'sell-high') {
+                breakevenSellHighDiv.classList.remove('hidden');
+                breakevenBuyLowDiv.classList.add('hidden');
+
+                const breakeven = i.targetPrice * (1 + (i.apy / 100) * (i.duration / 365));
+                sellHighBreakevenPriceEl.textContent = formatCurrency(breakeven, 'USDT');
+
+            } else { // buy-low
+                breakevenBuyLowDiv.classList.remove('hidden');
+                breakevenSellHighDiv.classList.add('hidden');
+
+                const breakeven = i.targetPrice / (1 + (i.apy / 100) * (i.duration / 365));
+                buyLowBreakevenPriceEl.textContent = formatCurrency(breakeven, 'USDT');
+            }
+        }
+        
+        // --- Initial Load ---
+        updateUIForStrategy();
+        switchTab('tab1');
+
+    </script>
+</body>
+</html>
