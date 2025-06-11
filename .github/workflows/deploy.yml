@@ -3,8 +3,8 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
+  # 移除pull_request触发器，避免重复部署
+  workflow_dispatch: # 允许手动触发
 
 # 设置权限
 permissions:
@@ -27,6 +27,9 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
+        with:
+          # 自动启用Pages功能
+          enablement: true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

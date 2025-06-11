@@ -1,6 +1,6 @@
 # Web3 投资收益工具集
 
-[![Deploy to GitHub Pages](https://github.com/major/crypto_values_local/actions/workflows/deploy.yml/badge.svg)](https://github.com/major/crypto_values_local/actions/workflows/deploy.yml)
+[![Deploy to GitHub Pages](https://github.com/scdotbox/crypto_values/actions/workflows/static.yml/badge.svg)](https://github.com/scdotbox/crypto_values/actions/workflows/static.yml)
 
 专业的Web3投资分析工具集合，帮助您在加密货币市场中做出明智的投资决策。
 
@@ -15,7 +15,7 @@
 
 ## 🚀 在线体验
 
-访问我们的在线工具：[https://major.github.io/crypto_values_local](https://major.github.io/crypto_values_local)
+访问我们的在线工具：[https://scdotbox.github.io/crypto_values](https://scdotbox.github.io/crypto_values)
 
 ## 📱 支持的设备
 
@@ -35,8 +35,8 @@
 
 ### 克隆项目
 ```bash
-git clone https://github.com/major/crypto_values_local.git
-cd crypto_values_local
+git clone https://github.com/scdotbox/crypto_values.git
+cd crypto_values
 ```
 
 ### 本地预览
@@ -73,14 +73,14 @@ start index.html  # Windows
 
 #### 步骤1：Fork或克隆项目
 ```bash
-git clone https://github.com/major/crypto_values_local.git
-cd crypto_values_local
+git clone https://github.com/scdotbox/crypto_values.git
+cd crypto_values
 ```
 
 #### 步骤2：推送到您的GitHub仓库
 ```bash
 # 添加您的远程仓库
-git remote set-url origin https://github.com/YOUR_USERNAME/crypto_values_local.git
+git remote set-url origin https://github.com/YOUR_USERNAME/crypto_values.git
 
 # 推送代码
 git push origin main
