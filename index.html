@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web3 投资收益工具集</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-hover {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .feature-icon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <nav class="gradient-bg shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-white text-xl font-bold">
+                            <i class="fas fa-chart-line mr-2"></i>
+                            Web3 投资工具
+                        </h1>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="https://github.com/major/crypto_values_local" 
+                       target="_blank" 
+                       class="text-white hover:text-gray-200 transition duration-300">
+                        <i class="fab fa-github text-xl"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="gradient-bg py-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-4xl md:text-6xl font-bold text-white mb-6">
+                专业的Web3投资分析工具
+            </h2>
+            <p class="text-xl text-white opacity-90 mb-8 max-w-3xl mx-auto">
+                基于数据驱动的投资决策工具，帮助您在加密货币市场中做出明智的投资选择
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="#tools" 
+                   class="bg-white text-gray-800 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition duration-300">
+                    探索工具
+                </a>
+                <a href="https://github.com/major/crypto_values_local" 
+                   target="_blank"
+                   class="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-gray-800 transition duration-300">
+                    查看源码
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Overview -->
+    <section id="features" class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h3 class="text-3xl font-bold text-gray-900 mb-4">核心功能</h3>
+                <p class="text-gray-600 max-w-2xl mx-auto">
+                    提供专业、准确、易用的投资分析工具，助力您的投资决策
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="text-center">
+                    <div class="feature-icon w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-calculator text-white text-2xl"></i>
+                    </div>
+                    <h4 class="text-xl font-semibold text-gray-900 mb-2">精确计算</h4>
+                    <p class="text-gray-600">基于真实市场数据的精确收益计算，帮助您评估投资机会</p>
+                </div>
+                
+                <div class="text-center">
+                    <div class="feature-icon w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-chart-bar text-white text-2xl"></i>
+                    </div>
+                    <h4 class="text-xl font-semibold text-gray-900 mb-2">风险分析</h4>
+                    <p class="text-gray-600">全面的风险评估和机会成本分析，让投资决策更明智</p>
+                </div>
+                
+                <div class="text-center">
+                    <div class="feature-icon w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-mobile-alt text-white text-2xl"></i>
+                    </div>
+                    <h4 class="text-xl font-semibold text-gray-900 mb-2">响应式设计</h4>
+                    <p class="text-gray-600">完美适配各种设备，随时随地进行投资分析</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tools Section -->
+    <section id="tools" class="py-16 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h3 class="text-3xl font-bold text-gray-900 mb-4">投资工具</h3>
+                <p class="text-gray-600">专业的投资分析工具集合</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Dual Currency Yield Calculator -->
+                <div class="bg-white rounded-lg shadow-md overflow-hidden card-hover">
+                    <div class="p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                                <i class="fas fa-exchange-alt text-blue-600 text-xl"></i>
+                            </div>
+                            <h4 class="text-xl font-semibold text-gray-900">双币赢计算器</h4>
+                        </div>
+                        <p class="text-gray-600 mb-6">
+                            专业的双币投资策略分析工具，帮助您评估"高价卖出"和"低价买入"策略的收益与风险。
+                        </p>
+                        <div class="space-y-2 mb-6">
+                            <div class="flex items-center text-sm text-gray-500">
+                                <i class="fas fa-check text-green-500 mr-2"></i>
+                                收益与机会成本分析
+                            </div>
+                            <div class="flex items-center text-sm text-gray-500">
+                                <i class="fas fa-check text-green-500 mr-2"></i>
+                                盈亏平衡价格计算
+                            </div>
+                            <div class="flex items-center text-sm text-gray-500">
+                                <i class="fas fa-check text-green-500 mr-2"></i>
+                                风险评估与对比
+                            </div>
+                        </div>
+                        <a href="dual_currency_yield.html" 
+                           class="block w-full text-center bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 transition duration-300">
+                            立即使用
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Future Tool Placeholder 1 -->
+                <div class="bg-white rounded-lg shadow-md overflow-hidden card-hover opacity-50">
+                    <div class="p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mr-4">
+                                <i class="fas fa-chart-pie text-gray-400 text-xl"></i>
+                            </div>
+                            <h4 class="text-xl font-semibold text-gray-900">投资组合分析</h4>
+                        </div>
+                        <p class="text-gray-600 mb-6">
+                            多元化投资组合分析工具，帮助您优化资产配置，降低风险。
+                        </p>
+                        <div class="space-y-2 mb-6">
+                            <div class="flex items-center text-sm text-gray-400">
+                                <i class="fas fa-clock mr-2"></i>
+                                即将推出
+                            </div>
+                        </div>
+                        <button disabled 
+                                class="block w-full text-center bg-gray-300 text-gray-500 py-3 px-4 rounded-lg font-semibold cursor-not-allowed">
+                            敬请期待
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Future Tool Placeholder 2 -->
+                <div class="bg-white rounded-lg shadow-md overflow-hidden card-hover opacity-50">
+                    <div class="p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mr-4">
+                                <i class="fas fa-robot text-gray-400 text-xl"></i>
+                            </div>
+                            <h4 class="text-xl font-semibold text-gray-900">DeFi收益分析</h4>
+                        </div>
+                        <p class="text-gray-600 mb-6">
+                            DeFi协议收益分析工具，帮助您找到最优的流动性挖矿机会。
+                        </p>
+                        <div class="space-y-2 mb-6">
+                            <div class="flex items-center text-sm text-gray-400">
+                                <i class="fas fa-clock mr-2"></i>
+                                即将推出
+                            </div>
+                        </div>
+                        <button disabled 
+                                class="block w-full text-center bg-gray-300 text-gray-500 py-3 px-4 rounded-lg font-semibold cursor-not-allowed">
+                            敬请期待
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <h5 class="text-lg font-semibold mb-4">关于项目</h5>
+                    <p class="text-gray-400">
+                        专注于为Web3投资者提供专业、可靠的投资分析工具，助力您在加密货币市场中做出明智决策。
+                    </p>
+                </div>
+                <div>
+                    <h5 class="text-lg font-semibold mb-4">快速链接</h5>
+                    <ul class="space-y-2">
+                        <li><a href="#tools" class="text-gray-400 hover:text-white transition duration-300">投资工具</a></li>
+                        <li><a href="dual_currency_yield.html" class="text-gray-400 hover:text-white transition duration-300">双币赢计算器</a></li>
+                        <li><a href="https://github.com/major/crypto_values_local" target="_blank" class="text-gray-400 hover:text-white transition duration-300">GitHub项目</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 class="text-lg font-semibold mb-4">技术支持</h5>
+                    <p class="text-gray-400 mb-4">
+                        本项目完全开源，欢迎贡献代码和建议。
+                    </p>
+                    <a href="https://github.com/major/crypto_values_local/issues" 
+                       target="_blank"
+                       class="inline-flex items-center text-blue-400 hover:text-blue-300 transition duration-300">
+                        <i class="fab fa-github mr-2"></i>
+                        反馈问题
+                    </a>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center">
+                <p class="text-gray-400">
+                    © 2024 Web3 投资工具. 开源项目，基于 MIT 协议发布。
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 平滑滚动
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // 页面加载动画
+        window.addEventListener('load', function() {
+            document.body.classList.add('loaded');
+        });
+    </script>
+</body>
+</html> 
