@@ -13,6 +13,14 @@
 - **实时计算**：基于用户输入参数进行实时收益计算
 - **风险评估**：全面的风险分析和机会成本评估
 
+### AMM 流动性挖矿 (LP) 收益计算器
+- **多协议支持**：支持 Uniswap V2/V3、集中流动性等多种 AMM 协议模型
+- **无常损失分析**：精确计算无常损失 (Impermanent Loss) 对投资收益的影响
+- **手续费收益预估**：基于交易量和 TVL 估算年化手续费收益 (APY)
+- **集中流动性策略**：支持 Uniswap V3 等集中流动性协议的价格区间设置
+- **风险与收益平衡**：全面分析 LP 投资相比直接持有 (HODL) 的优劣
+- **灵活投入方式**：支持均衡投入和单币投入两种流动性添加方式
+
 ## 🚀 在线体验
 
 访问我们的在线工具：[https://scdotbox.github.io/crypto_values](https://scdotbox.github.io/crypto_values)
@@ -132,10 +140,12 @@ git push origin gh-pages
 crypto_values_local/
 ├── index.html                 # 主页面（导航页）
 ├── dual_currency_yield.html   # 双币赢收益计算器
+├── lp_yield.html              # AMM 流动性挖矿收益计算器
 ├── README.md                  # 项目说明文档
+├── deploy.sh                  # 部署脚本
 └── .github/
     └── workflows/
-        └── deploy.yml         # GitHub Actions部署配置
+        └── static.yml         # GitHub Actions部署配置
 ```
 
 ## 🎯 使用指南
@@ -159,12 +169,40 @@ crypto_values_local/
    - 对比分析：与其他投资策略的收益对比
    - 盈亏平衡分析：关键价格阈值分析
 
+### LP 收益计算器使用步骤
+
+1. **选择协议模型**：
+   - 标准 AMM：Uniswap V2 等传统 AMM 模型
+   - 集中流动性：Uniswap V3/V4、MMT、Meteora DLMM 等
+
+2. **设置交易对和流动性**：
+   - 输入交易对代币名称（如 SUI/USDC）
+   - 选择投入方式：均衡投入或单币投入
+   - 设置投入数量
+
+3. **配置价格参数**：
+   - 当前价格：市场实时价格
+   - 价格范围：集中流动性的价格区间（仅 V3）
+   - 预期未来价格：用于计算无常损失
+
+4. **输入收益参数**：
+   - 24小时交易量：用于估算手续费收益
+   - 池子总流动性 (TVL)
+   - 手续费率：协议手续费率
+   - 投资天数：预期持有期限
+
+5. **分析结果**：
+   - 无常损失计算和百分比
+   - 手续费收益预估和 APY
+   - 净收益对比 HODL 策略
+   - 集中流动性建议价格区间
+
 ## 🤝 贡献指南
 
 我们欢迎任何形式的贡献！
 
 ### 提交问题
-如果您发现bug或有功能建议，请[创建Issue](https://github.com/major/crypto_values_local/issues)。
+如果您发现bug或有功能建议，请[创建Issue](https://github.com/scdotbox/crypto_values/issues)。
 
 ### 提交代码
 1. Fork本项目
@@ -185,9 +223,9 @@ crypto_values_local/
 
 ## 🔗 相关链接
 
-- [在线演示](https://major.github.io/crypto_values_local)
-- [问题反馈](https://github.com/major/crypto_values_local/issues)
-- [功能请求](https://github.com/major/crypto_values_local/issues/new)
+- [在线演示](https://scdotbox.github.io/crypto_values)
+- [问题反馈](https://github.com/scdotbox/crypto_values/issues)
+- [功能请求](https://github.com/scdotbox/crypto_values/issues/new)
 
 ## ⚠️ 免责声明
 
