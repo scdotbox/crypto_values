@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMM 流动性挖矿 (LP) 收益与无常损失计算器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .tab-button.active {
+            background-color: #1E40AF; /* bg-blue-800 */
+            color: white;
+        }
+        .tab-button {
+            transition: all 0.3s ease;
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 250px;
+            background-color: #2d3748;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -125px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.8rem;
+            line-height: 1.4;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex justify-center items-start min-h-screen p-4 sm:p-6 lg:p-8">
+    <div class="w-full max-w-4xl bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8 space-y-8">
+        
+        <!-- Navigation -->
+        <nav class="mb-6">
+            <a href="index.html" class="inline-flex items-center text-blue-400 hover:text-blue-300 transition duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+                </svg>
+                返回主页
+            </a>
+        </nav>
+        <!-- Header -->
+        <div class="text-center">
+            <h1 class="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300">AMM 收益与风险分析器</h1>
+            <p class="mt-2 text-gray-400">计算流动性池 (LP) 的预估年化收益 (APY) 和无常损失 (IL)</p>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Left Panel: Inputs -->
+            <div class="bg-gray-700/50 p-6 rounded-xl space-y-6">
+                <h2 class="text-xl font-semibold border-b border-gray-600 pb-3">1. 输入参数</h2>
+
+                <!-- Protocol Selector -->
+                <div>
+                    <label for="protocol" class="block text-sm font-medium text-gray-300 mb-2">选择协议模型</label>
+                    <select id="protocol" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="uniswap_v3">集中流动性 (Uniswap V3/V4, MMT, Meteora DLMM)</option>
+                        <option value="uniswap_v2">标准 AMM (Uniswap V2, etc.)</option>
+                    </select>
+                </div>
+
+                <!-- Token Pair -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">交易对 (Token Pair)</label>
+                    <div class="flex space-x-2">
+                        <input type="text" id="tokenA" value="SUI" class="w-1/2 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-center" placeholder="Token A (e.g. ETH)">
+                        <input type="text" id="tokenB" value="USDC" class="w-1/2 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-center" placeholder="Token B (e.g. USDC)">
+                    </div>
+                </div>
+
+                <!-- Liquidity Input -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">投入流动性方式</label>
+                    <div id="liquidity-tabs" class="flex bg-gray-800 rounded-lg p-1 border border-gray-600">
+                        <button class="tab-button w-1/2 p-2 rounded-md text-sm font-medium active" data-tab="balanced">均衡投入</button>
+                        <button class="tab-button w-1/2 p-2 rounded-md text-sm font-medium" data-tab="single">单币投入</button>
+                    </div>
+                    <div id="liquidity-inputs" class="mt-4 space-y-3">
+                        <div id="balanced-input">
+                            <input type="number" id="amountA" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2" placeholder="Token A 数量">
+                            <input type="number" id="amountB" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 mt-2" placeholder="Token B 数量">
+                        </div>
+                        <div id="single-input" class="hidden">
+                            <select id="single-token-select" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 mb-2"></select>
+                            <input type="number" id="single-amount" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2" placeholder="投入数量">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Price Inputs -->
+                <div class="space-y-3">
+                    <div class="relative">
+                        <label for="currentPrice" class="block text-sm font-medium text-gray-300">当前价格 (<span id="price-label-current">Token A / Token B</span>)</label>
+                        <input type="number" id="currentPrice" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 mt-1" placeholder="例如: 1.5">
+                    </div>
+                    <div id="range-inputs" class="space-y-3">
+                        <label class="block text-sm font-medium text-gray-300">设置价格范围</label>
+                        <div class="flex items-center space-x-2">
+                            <input type="number" id="lowerBound" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2" placeholder="最低价">
+                            <span class="text-gray-400">-</span>
+                            <input type="number" id="upperBound" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2" placeholder="最高价">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="futurePrice" class="block text-sm font-medium text-gray-300">预期未来价格</label>
+                        <input type="number" id="futurePrice" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 mt-1" placeholder="用于计算无常损失">
+                    </div>
+                </div>
+                
+                <!-- APY & Time Inputs -->
+                <div class="space-y-3">
+                     <label class="block text-sm font-medium text-gray-300">收益估算参数
+                        <span class="tooltip">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>
+                            <span class="tooltiptext">手续费 APY 是基于您提供的交易量和流动性估算得出的，实际收益会根据市场情况动态变化。</span>
+                        </span>
+                     </label>
+                     <input type="number" id="dailyVolume" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2" placeholder="交易对 24h 交易量 ($)">
+                     <input type="number" id="tvl" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 mt-2" placeholder="池中总流动性 TVL ($)">
+                     <input type="number" id="feeTier" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 mt-2" placeholder="手续费率 (%) e.g. 0.3">
+                     <input type="number" id="investmentDuration" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 mt-2" placeholder="投资天数 (e.g. 30)">
+                </div>
+
+                <button id="calculateBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105">
+                    开始计算
+                </button>
+            </div>
+
+            <!-- Right Panel: Results -->
+            <div class="bg-gray-700/50 p-6 rounded-xl space-y-6">
+                <h2 class="text-xl font-semibold border-b border-gray-600 pb-3">2. 分析结果</h2>
+                <div id="results-output" class="space-y-5 hidden">
+                    <!-- Profit & Loss Analysis -->
+                    <div class="bg-gray-800 p-4 rounded-lg">
+                        <h3 class="font-semibold text-lg text-blue-300 mb-3">收益与亏损 (P&L) 分析</h3>
+                        <div class="space-y-4 text-sm">
+                            <div class="flex justify-between items-center">
+                                <p class="text-gray-400">若直接持有 (HODL) 价值</p>
+                                <p id="hodlValue" class="text-lg font-bold"></p>
+                            </div>
+                             <div class="flex justify-between items-center">
+                                <p class="text-gray-400">LP 仓位价值 (未计入手续费)</p>
+                                <p id="lpValue" class="text-lg font-bold"></p>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <p class="text-gray-400">无常损失 (IL)</p>
+                                <div class="flex items-center space-x-2">
+                                    <p id="ilValue" class="text-lg font-bold"></p>
+                                    <p id="ilPercentage" class="text-base font-semibold px-2 py-0.5 rounded-md"></p>
+                                </div>
+                            </div>
+                            <hr class="border-gray-600">
+                             <div class="flex justify-between items-center">
+                                <p class="text-gray-400">手续费总收益</p>
+                                <p id="feeEarnings" class="text-lg font-bold text-green-400"></p>
+                            </div>
+                            <div class="flex justify-between items-center pt-2">
+                                <p class="text-lg font-semibold text-gray-200">净收益/亏损 (vs HODL)</p>
+                                <p id="netProfit" class="text-2xl font-bold"></p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- APY -->
+                    <div class="bg-gray-800 p-4 rounded-lg">
+                         <h3 class="font-semibold text-lg text-teal-300 mb-2">预估年化收益 (APY)</h3>
+                         <div class="flex items-baseline space-x-2">
+                            <p id="apy" class="text-3xl font-bold"></p>
+                            <span class="text-gray-400">手续费 APY</span>
+                         </div>
+                         <p id="apy-disclaimer" class="text-xs text-gray-500 mt-2"></p>
+                    </div>
+                    <!-- Position Info -->
+                    <div class="bg-gray-800 p-4 rounded-lg">
+                        <h3 class="font-semibold text-lg text-gray-300 mb-2">仓位详情</h3>
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div><p class="text-gray-400">初始总价值</p><p id="initialValue" class="font-semibold"></p></div>
+                            <div><p class="text-gray-400">协议模型</p><p id="protocolUsed" class="font-semibold"></p></div>
+                            <div><p class="text-gray-400">投入 <span id="tokenA-name-res"></span></p><p id="tokenAAmount" class="font-semibold"></p></div>
+                            <div><p class="text-gray-400">投入 <span id="tokenB-name-res"></span></p><p id="tokenBAmount" class="font-semibold"></p></div>
+                        </div>
+                    </div>
+                    <!-- Range Suggestion -->
+                    <div id="suggestion-box" class="bg-blue-900/40 p-4 rounded-lg border border-blue-500 hidden">
+                        <h3 class="font-semibold text-lg text-blue-300 mb-2">💡 价格区间建议</h3>
+                        <p id="rangeSuggestion" class="text-sm"></p>
+                    </div>
+                </div>
+                <div id="welcome-message" class="text-center text-gray-400 py-10">
+                    <p>请输入参数并点击 "开始计算" 以查看结果。</p>
+                    <p class="text-sm mt-2">此工具旨在帮助理解 AMM 机制，并非财务建议。</p>
+                </div>
+                <div id="error-message" class="text-center text-red-400 p-4 bg-red-900/50 rounded-lg hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const protocolSelect = document.getElementById('protocol');
+        const rangeInputs = document.getElementById('range-inputs');
+        const calculateBtn = document.getElementById('calculateBtn');
+        const resultsOutput = document.getElementById('results-output');
+        const welcomeMessage = document.getElementById('welcome-message');
+        const errorMessage = document.getElementById('error-message');
+        const suggestionBox = document.getElementById('suggestion-box');
+
+        const tokenAInput = document.getElementById('tokenA');
+        const tokenBInput = document.getElementById('tokenB');
+        
+        const priceLabelCurrent = document.getElementById('price-label-current');
+
+        const liquidityTabs = document.getElementById('liquidity-tabs');
+        const balancedInputDiv = document.getElementById('balanced-input');
+        const singleInputDiv = document.getElementById('single-input');
+        const singleTokenSelect = document.getElementById('single-token-select');
+        let liquidityMode = 'balanced';
+
+        // Event Listeners
+        protocolSelect.addEventListener('change', toggleRangeInputs);
+        calculateBtn.addEventListener('click', performCalculations);
+        
+        tokenAInput.addEventListener('keyup', updateLabels);
+        tokenBInput.addEventListener('keyup', updateLabels);
+
+        liquidityTabs.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                document.querySelector('.tab-button.active').classList.remove('active');
+                e.target.classList.add('active');
+                liquidityMode = e.target.dataset.tab;
+                toggleLiquidityInputs();
+            }
+        });
+
+        function updateLabels() {
+            const tokenA = tokenAInput.value || 'Token A';
+            const tokenB = tokenBInput.value || 'Token B';
+            priceLabelCurrent.textContent = `${tokenA} / ${tokenB}`;
+            
+            document.getElementById('tokenA-name-res').textContent = tokenA;
+            document.getElementById('tokenB-name-res').textContent = tokenB;
+
+            // Update single token select options
+            singleTokenSelect.innerHTML = `
+                <option value="A">${tokenA}</option>
+                <option value="B">${tokenB}</option>
+            `;
+        }
+
+        function toggleLiquidityInputs() {
+            if (liquidityMode === 'balanced') {
+                balancedInputDiv.style.display = 'block';
+                singleInputDiv.style.display = 'none';
+            } else {
+                balancedInputDiv.style.display = 'none';
+                singleInputDiv.style.display = 'block';
+            }
+        }
+
+        function toggleRangeInputs() {
+            if (protocolSelect.value === 'uniswap_v2') {
+                rangeInputs.style.display = 'none';
+                suggestionBox.style.display = 'none';
+            } else {
+                rangeInputs.style.display = 'block';
+            }
+        }
+        
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            resultsOutput.style.display = 'none';
+            welcomeMessage.style.display = 'none';
+        }
+
+        function performCalculations() {
+            // Clear previous errors and results
+            errorMessage.style.display = 'none';
+
+            // --- 1. Get all input values and parse them ---
+            const protocol = protocolSelect.value;
+            
+            const tokenA = document.getElementById('tokenA').value || 'Token A';
+            const tokenB = document.getElementById('tokenB').value || 'Token B';
+            
+            let amountA = parseFloat(document.getElementById('amountA').value);
+            let amountB = parseFloat(document.getElementById('amountB').value);
+            const singleAmount = parseFloat(document.getElementById('single-amount').value);
+            const singleTokenType = document.getElementById('single-token-select').value;
+
+            const currentPrice = parseFloat(document.getElementById('currentPrice').value);
+            const futurePrice = parseFloat(document.getElementById('futurePrice').value);
+            const lowerBound = parseFloat(document.getElementById('lowerBound').value);
+            const upperBound = parseFloat(document.getElementById('upperBound').value);
+            
+            const dailyVolume = parseFloat(document.getElementById('dailyVolume').value);
+            const tvl = parseFloat(document.getElementById('tvl').value);
+            const feeTier = parseFloat(document.getElementById('feeTier').value) / 100;
+            const investmentDuration = parseFloat(document.getElementById('investmentDuration').value);
+
+
+            // --- 2. Input Validation ---
+            if (isNaN(currentPrice) || isNaN(futurePrice)) {
+                showError('请输入有效的当前价格和预期未来价格。'); return;
+            }
+            if (liquidityMode === 'balanced' && (isNaN(amountA) || isNaN(amountB))) {
+                 showError('在均衡投入模式下，请输入两种代币的数量。'); return;
+            }
+             if (liquidityMode === 'single' && isNaN(singleAmount)) {
+                showError('在单币投入模式下，请输入代币数量。'); return;
+            }
+            if (protocol === 'uniswap_v3' && (isNaN(lowerBound) || isNaN(upperBound))) {
+                showError('对于集中流动性协议，请输入有效的价格范围。'); return;
+            }
+             if (protocol === 'uniswap_v3' && lowerBound >= upperBound) {
+                showError('价格范围的最低价必须低于最高价。'); return;
+            }
+            if (protocol === 'uniswap_v3' && (currentPrice < lowerBound || currentPrice > upperBound)) {
+                showError('当前价格必须在您设定的价格范围之内才能添加流动性。'); return;
+            }
+            if (isNaN(dailyVolume) || isNaN(tvl) || isNaN(feeTier) || isNaN(investmentDuration)) {
+                showError('请输入有效的交易量、TVL、手续费率和投资天数以计算收益。'); return;
+            }
+
+            // --- 3. Handle Asymmetric Liquidity Provision ---
+            if (liquidityMode === 'single') {
+                if (singleTokenType === 'A') {
+                    const totalValue = singleAmount * currentPrice;
+                    amountB = totalValue / 2;
+                    amountA = (totalValue / 2) / currentPrice;
+                } else { // Token B
+                    const totalValue = singleAmount;
+                    amountB = totalValue / 2;
+                    amountA = (totalValue / 2) / currentPrice;
+                }
+            }
+
+
+            // --- 4. Core Calculations based on protocol ---
+            let hodlValue, lpValue, ilValue, ilPercentage, apy = 0;
+            const initialValue = amountA * currentPrice + amountB;
+            
+            if (protocol === 'uniswap_v2') {
+                const k = amountA * amountB;
+                const priceRatio = futurePrice / currentPrice;
+                
+                const lpAmountA = Math.sqrt(k / futurePrice);
+                const lpAmountB = Math.sqrt(k * futurePrice);
+                lpValue = lpAmountA * futurePrice + lpAmountB;
+                hodlValue = amountA * futurePrice + amountB;
+                
+                const ilFactor = (2 * Math.sqrt(priceRatio)) / (1 + priceRatio) - 1;
+                ilValue = hodlValue * ilFactor;
+                ilPercentage = ilFactor * 100;
+                
+                // V2 APY Calculation: (DailyFees / TVL) annualized.
+                if (tvl > 0) {
+                    apy = (dailyVolume * feeTier / tvl) * 365 * 100;
+                }
+
+            } else { // uniswap_v3 and other concentrated liquidity models
+                const sqrtP = Math.sqrt(currentPrice);
+                const sqrtPa = Math.sqrt(lowerBound);
+                const sqrtPb = Math.sqrt(upperBound);
+                const sqrtPf = Math.sqrt(futurePrice);
+                
+                let L = 0;
+                const L_from_A = amountA * sqrtP * sqrtPb / (sqrtPb - sqrtP);
+                const L_from_B = amountB / (sqrtP - sqrtPa);
+                L = Math.min(L_from_A, L_from_B);
+                
+                let futureAmountA, futureAmountB;
+                if (futurePrice <= lowerBound) {
+                    futureAmountA = 0;
+                    futureAmountB = L * (sqrtPb - sqrtPa);
+                } else if (futurePrice >= upperBound) {
+                    futureAmountA = L * (1/sqrtPa - 1/sqrtPb);
+                    futureAmountB = 0;
+                } else {
+                    futureAmountA = L * (1/sqrtPf - 1/sqrtPb);
+                    futureAmountB = L * (sqrtPf - sqrtPa);
+                }
+                lpValue = futureAmountA * futurePrice + futureAmountB;
+                hodlValue = amountA * futurePrice + amountB;
+                
+                ilValue = lpValue - hodlValue;
+                ilPercentage = hodlValue > 0 ? (ilValue / hodlValue) * 100 : 0;
+                
+                // V3 APY Calculation (REVISED & FIXED)
+                // The base APY of the pool is (DailyFees / TVL), and we apply a concentration factor bonus.
+                if (tvl > 0 && upperBound > lowerBound) {
+                    const basePoolApy = (dailyVolume * feeTier / tvl) * 365 * 100;
+                    // The concentration factor magnifies returns. A tighter range gives a higher bonus.
+                    // Heuristic: Price / RangeWidth. A higher value means more concentrated.
+                    const concentrationFactor = currentPrice / (upperBound - lowerBound);
+                    // Final APY is the base pool APY multiplied by the concentration factor.
+                    // We add a cap to prevent absurdly high APYs from very tight ranges.
+                    apy = basePoolApy * Math.min(concentrationFactor, 50); // Cap factor at 50x
+                }
+
+                document.getElementById('apy-disclaimer').textContent = "集中流动性APY为高度简化的估算值，因其资本效率加成，实际收益会受价格波动和池内流动性分布影响。";
+
+                const volatility = 0.25;
+                const suggestedLower = currentPrice * (1 - volatility);
+                const suggestedUpper = currentPrice * (1 + volatility);
+                document.getElementById('rangeSuggestion').textContent = `基于对未来25%价格波动的保守估计，一个可能的起始范围是 [${suggestedLower.toFixed(2)}, ${suggestedUpper.toFixed(2)}]。这能较好地平衡手续费收益和无常损失风险。请根据您对市场的判断进行调整。`;
+                suggestionBox.style.display = 'block';
+            }
+            
+            // --- 5. Calculate final P&L ---
+            const totalFeeEarnings = initialValue * (apy / 100) * (investmentDuration / 365);
+            const netProfitVsHodl = ilValue + totalFeeEarnings;
+
+            // --- 6. Display Results ---
+            displayResults({
+                initialValue, hodlValue, lpValue, ilValue, ilPercentage,
+                apy, protocol, totalFeeEarnings, netProfitVsHodl,
+                tokenA: { name: tokenA, amount: amountA },
+                tokenB: { name: tokenB, amount: amountB },
+            });
+        }
+        
+        function displayResults(data) {
+            welcomeMessage.style.display = 'none';
+            resultsOutput.style.display = 'block';
+
+            const formatCurrency = (val) => `$${val.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+            document.getElementById('initialValue').textContent = formatCurrency(data.initialValue);
+            document.getElementById('hodlValue').textContent = formatCurrency(data.hodlValue);
+            document.getElementById('lpValue').textContent = formatCurrency(data.lpValue);
+            document.getElementById('ilValue').textContent = formatCurrency(data.ilValue);
+            
+            const ilPercElem = document.getElementById('ilPercentage');
+            ilPercElem.textContent = `${data.ilPercentage.toFixed(2)}%`;
+            ilPercElem.className = data.ilPercentage < -0.01 ? 'text-base font-semibold px-2 py-0.5 rounded-md bg-red-500 text-white' : 'text-base font-semibold px-2 py-0.5 rounded-md bg-green-500 text-white';
+            
+            document.getElementById('feeEarnings').textContent = `+ ${formatCurrency(data.totalFeeEarnings)}`;
+            
+            const netProfitElem = document.getElementById('netProfit');
+            netProfitElem.textContent = formatCurrency(data.netProfitVsHodl);
+            netProfitElem.className = data.netProfitVsHodl < 0 ? 'text-2xl font-bold text-red-400' : 'text-2xl font-bold text-green-400';
+
+            document.getElementById('apy').textContent = data.apy.toFixed(2) + '%';
+            
+            document.getElementById('protocolUsed').textContent = data.protocol === 'uniswap_v2' ? '标准 AMM' : '集中流动性';
+            document.getElementById('tokenAAmount').textContent = `${data.tokenA.amount.toFixed(4)} ${data.tokenA.name}`;
+            document.getElementById('tokenBAmount').textContent = `${data.tokenB.amount.toFixed(4)} ${data.tokenB.name}`;
+            
+            if (protocolSelect.value === 'uniswap_v2') {
+                 suggestionBox.style.display = 'none';
+                 document.getElementById('apy-disclaimer').textContent = "标准 AMM 的 APY 估算基于整个池子的数据，您的实际收益取决于您在总流动性中的占比。";
+            }
+        }
+        
+        // Initial setup
+        updateLabels();
+        toggleRangeInputs();
+        toggleLiquidityInputs();
+
+    </script>
+</body>
+</html>
