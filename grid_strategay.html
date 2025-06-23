@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>抄底策略生成器 (马丁格尔/金字塔/网格)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .strategy-tab.active {
+            background-color: #2563EB; /* bg-blue-600 */
+            color: white;
+            border-color: #2563EB;
+        }
+        .strategy-tab {
+            transition: all 0.3s ease;
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden; width: 220px; background-color: #1f2937; color: #fff;
+            text-align: left; border-radius: 6px; padding: 8px; position: absolute;
+            z-index: 10; bottom: 125%; left: 50%; margin-left: -110px;
+            opacity: 0; transition: opacity 0.3s; font-size: 0.8rem; line-height: 1.4;
+        }
+        .tooltip:hover .tooltiptext { visibility: visible; opacity: 1; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex justify-center items-start min-h-screen p-4 sm:p-6 lg:p-8">
+    <div class="w-full max-w-5xl bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8 space-y-8">
+        <!-- Header -->
+        <div class="text-center">
+            <h1 class="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">抄底策略生成器</h1>
+            <p class="mt-2 text-gray-400">为您量化马丁格尔、金字塔、网格交易的每一步操作</p>
+        </div>
+
+        <!-- Strategy Tabs -->
+        <div id="strategy-tabs" class="flex flex-wrap justify-center gap-2 sm:gap-4 border-b border-gray-700 pb-4">
+            <button class="strategy-tab active w-full sm:w-auto text-center border-2 border-gray-600 rounded-lg px-6 py-2 font-semibold" data-strategy="martingale">📈 马丁格尔策略</button>
+            <button class="strategy-tab w-full sm:w-auto text-center border-2 border-gray-600 rounded-lg px-6 py-2 font-semibold" data-strategy="pyramid">⛰️ 金字塔策略</button>
+            <button class="strategy-tab w-full sm:w-auto text-center border-2 border-gray-600 rounded-lg px-6 py-2 font-semibold" data-strategy="grid">🕸️ 网格策略</button>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-8">
+            <!-- Left Panel: Inputs -->
+            <div class="md:col-span-2 bg-gray-700/50 p-6 rounded-xl">
+                <h2 class="text-xl font-semibold mb-6">参数设置</h2>
+                <div id="inputs-container" class="space-y-4">
+                    <!-- Common Inputs -->
+                    <div class="space-y-4">
+                        <div>
+                            <label for="asset" class="block text-sm font-medium text-gray-300">目标资产</label>
+                            <input type="text" id="asset" value="BTC" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2">
+                        </div>
+                        <div>
+                            <label for="startPrice" class="block text-sm font-medium text-gray-300">起始价格 ($)</label>
+                            <input type="number" id="startPrice" value="60000" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2">
+                        </div>
+                        <div>
+                            <label for="totalInvestment" class="block text-sm font-medium text-gray-300">计划总投入 ($)</label>
+                            <input type="number" id="totalInvestment" value="10000" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2">
+                        </div>
+                    </div>
+
+                    <!-- Strategy Specific Inputs -->
+                    <div id="martingale-inputs" class="space-y-4 pt-4 border-t border-gray-600">
+                        <div>
+                            <label for="martingaleDrop" class="block text-sm font-medium text-gray-300">加仓间距 (%) <span class="tooltip">ⓘ<span class="tooltiptext">价格每下跌这个百分比，就执行一次加仓。</span></span></label>
+                            <input type="number" id="martingaleDrop" value="10" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2">
+                        </div>
+                        <div>
+                            <label for="martingaleMultiplier" class="block text-sm font-medium text-gray-300">加仓倍率 <span class="tooltip">ⓘ<span class="tooltiptext">下一次投入的金额是上一次的多少倍。经典马丁为2倍。</span></span></label>
+                            <input type="number" id="martingaleMultiplier" value="2" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2">
+                        </div>
+                         <div>
+                            <label for="martingaleBuys" class="block text-sm font-medium text-gray-300">加仓次数</label>
+                            <input type="number" id="martingaleBuys" value="5" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2">
+                        </div>
+                    </div>
+                    
+                    <div id="pyramid-inputs" class="hidden space-y-4 pt-4 border-t border-gray-600">
+                        <div>
+                            <label for="pyramidDrop" class="block text-sm font-medium text-gray-300">加仓间距 (%)</label>
+                            <input type="number" id="pyramidDrop" value="10" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2">
+                        </div>
+                        <div>
+                            <label for="pyramidFirstPortion" class="block text-sm font-medium text-gray-300">首仓占比 (%) <span class="tooltip">ⓘ<span class="tooltiptext">第一笔买入金额占总投入的百分比。金字塔策略首仓最大。</span></span></label>
+                            <input type="number" id="pyramidFirstPortion" value="40" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2">
+                        </div>
+                        <div>
+                            <label for="pyramidBuys" class="block text-sm font-medium text-gray-300">总买入次数</label>
+                            <input type="number" id="pyramidBuys" value="5" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2">
+                        </div>
+                    </div>
+
+                    <div id="grid-inputs" class="hidden space-y-4 pt-4 border-t border-gray-600">
+                        <div>
+                            <label for="gridLowerPrice" class="block text-sm font-medium text-gray-300">网格最低价 ($) <span class="tooltip">ⓘ<span class="tooltiptext">计划抄底的最低价格边界。</span></span></label>
+                            <input type="number" id="gridLowerPrice" value="40000" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2">
+                        </div>
+                        <div>
+                            <label for="gridCount" class="block text-sm font-medium text-gray-300">网格数量 <span class="tooltip">ⓘ<span class="tooltiptext">在起始价和最低价之间，您希望布置多少个买单。</span></span></label>
+                            <input type="number" id="gridCount" value="10" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2">
+                        </div>
+                        <div>
+                            <label for="gridProfit" class="block text-sm font-medium text-gray-300">单网格止盈 (%) <span class="tooltip">ⓘ<span class="tooltiptext">每个网格买入后，价格反弹多少百分比就卖出。</span></span></label>
+                            <input type="number" id="gridProfit" value="5" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2">
+                        </div>
+                    </div>
+                </div>
+                 <button id="generateBtn" class="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300">
+                    生成策略计划
+                </button>
+            </div>
+
+            <!-- Right Panel: Results -->
+            <div class="md:col-span-3">
+                 <h2 class="text-xl font-semibold mb-4">策略计划详情</h2>
+                 <div id="warning-message" class="hidden p-3 mb-4 text-center text-yellow-200 bg-yellow-800/50 rounded-lg"></div>
+                 <div id="results-output" class="bg-gray-700/50 p-4 rounded-xl">
+                    <div id="welcome-message" class="text-center text-gray-400 py-10">
+                        <p>请在左侧设置参数，然后点击生成按钮。</p>
+                        <p class="text-sm mt-2">投资有风险，本工具仅供参考。</p>
+                    </div>
+                    <!-- NEW: Card layout container -->
+                    <div id="plan-container" class="space-y-4"></div>
+                    <div id="summary" class="hidden mt-4 pt-4 border-t border-gray-500 text-sm space-y-2"></div>
+                 </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // --- DOM Elements ---
+    const tabsContainer = document.getElementById('strategy-tabs');
+    const generateBtn = document.getElementById('generateBtn');
+    const inputs = {
+        martingale: document.getElementById('martingale-inputs'),
+        pyramid: document.getElementById('pyramid-inputs'),
+        grid: document.getElementById('grid-inputs'),
+    };
+    const welcomeMessage = document.getElementById('welcome-message');
+    const planContainer = document.getElementById('plan-container'); // Changed from table
+    const warningMessage = document.getElementById('warning-message');
+    const summaryDiv = document.getElementById('summary');
+
+    let currentStrategy = 'martingale';
+
+    // --- Event Listeners ---
+    tabsContainer.addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON') {
+            const strategy = e.target.dataset.strategy;
+            if (strategy === currentStrategy) return;
+
+            tabsContainer.querySelector('.active').classList.remove('active');
+            e.target.classList.add('active');
+
+            for (const key in inputs) {
+                inputs[key].classList.add('hidden');
+            }
+            
+            inputs[strategy].classList.remove('hidden');
+            currentStrategy = strategy;
+            clearResults();
+        }
+    });
+
+    generateBtn.addEventListener('click', () => {
+        clearResults();
+        try {
+            switch (currentStrategy) {
+                case 'martingale':
+                    generateMartingaleStrategy();
+                    break;
+                case 'pyramid':
+                    generatePyramidStrategy();
+                    break;
+                case 'grid':
+                    generateGridStrategy();
+                    break;
+            }
+        } catch (error) {
+            console.error(error);
+            alert(`发生错误: ${error.message}`);
+        }
+    });
+
+    // --- Strategy Generation Functions ---
+
+    function generateMartingaleStrategy() {
+        // 1. Get Inputs
+        const asset = document.getElementById('asset').value;
+        const startPrice = parseFloat(document.getElementById('startPrice').value);
+        const totalInvestment = parseFloat(document.getElementById('totalInvestment').value);
+        const dropPercent = parseFloat(document.getElementById('martingaleDrop').value) / 100;
+        const multiplier = parseFloat(document.getElementById('martingaleMultiplier').value);
+        const buys = parseInt(document.getElementById('martingaleBuys').value);
+        
+        warningMessage.textContent = '警告：马丁格尔策略风险极高，在极端行情下可能导致巨大亏损或资金耗尽。请确保您完全理解其风险！';
+        warningMessage.classList.remove('hidden');
+
+        // 2. Calculate weights and amounts
+        let weights = [];
+        let totalWeight = 0;
+        for (let i = 0; i < buys; i++) {
+            const weight = Math.pow(multiplier, i);
+            weights.push(weight);
+            totalWeight += weight;
+        }
+        
+        const baseAmount = totalInvestment / totalWeight;
+        
+        // 3. Generate Plan
+        let plan = [];
+        let cumulativeInvestment = 0;
+        let cumulativeAsset = 0;
+        
+        for (let i = 0; i < buys; i++) {
+            const buyPrice = startPrice * Math.pow(1 - dropPercent, i);
+            const investment = baseAmount * weights[i];
+            const assetAmount = investment / buyPrice;
+            
+            cumulativeInvestment += investment;
+            cumulativeAsset += assetAmount;
+            
+            const avgPrice = cumulativeInvestment / cumulativeAsset;
+            const takeProfitPrice = avgPrice * (1 + dropPercent); 
+
+            plan.push({
+                level: i + 1,
+                buyPrice,
+                investment,
+                assetAmount,
+                cumulativeInvestment,
+                avgPrice,
+                takeProfitPrice,
+            });
+        }
+        
+        // 4. Display Plan
+        displayMartingalePyramidPlan(plan, asset);
+        
+        const lastPosition = plan[plan.length - 1];
+        displaySummary(`
+            <p>总计加仓 ${buys} 次，总投入 <span class="font-bold text-white">$${lastPosition.cumulativeInvestment.toFixed(2)}</span>。</p>
+            <p>最终持仓均价为 <span class="font-bold text-yellow-400">$${lastPosition.avgPrice.toFixed(2)}</span>。</p>
+            <p>当价格反弹至 <span class="font-bold text-green-400">$${lastPosition.takeProfitPrice.toFixed(2)}</span> 时，可考虑全部卖出止盈。</p>
+        `);
+    }
+
+    function generatePyramidStrategy() {
+        const asset = document.getElementById('asset').value;
+        const startPrice = parseFloat(document.getElementById('startPrice').value);
+        const totalInvestment = parseFloat(document.getElementById('totalInvestment').value);
+        const dropPercent = parseFloat(document.getElementById('pyramidDrop').value) / 100;
+        const firstPortion = parseFloat(document.getElementById('pyramidFirstPortion').value) / 100;
+        const buys = parseInt(document.getElementById('pyramidBuys').value);
+        
+        warningMessage.textContent = '金字塔策略是一种防御性策略，下跌时逐渐减少买入量以控制风险。';
+        warningMessage.classList.remove('hidden');
+
+        const firstAmount = totalInvestment * firstPortion;
+        const remainingInvestment = totalInvestment - firstAmount;
+        const remainingBuys = buys - 1;
+        let amounts = [firstAmount];
+
+        if (remainingBuys > 0) {
+            const baseAmountForRest = remainingInvestment / ((remainingBuys * (remainingBuys + 1)) / 2);
+            for (let i = remainingBuys; i > 0; i--) {
+                amounts.push(baseAmountForRest * i);
+            }
+        }
+        
+        let plan = [];
+        let cumulativeInvestment = 0;
+        let cumulativeAsset = 0;
+
+        for (let i = 0; i < buys; i++) {
+             const buyPrice = startPrice * Math.pow(1 - dropPercent, i);
+             const investment = amounts[i];
+             if(!investment) continue;
+             const assetAmount = investment / buyPrice;
+
+             cumulativeInvestment += investment;
+             cumulativeAsset += assetAmount;
+             
+             const avgPrice = cumulativeInvestment / cumulativeAsset;
+             const takeProfitPrice = avgPrice * (1 + dropPercent * (i + 1));
+
+             plan.push({
+                 level: i + 1,
+                 buyPrice,
+                 investment,
+                 assetAmount,
+                 cumulativeInvestment,
+                 avgPrice,
+                 takeProfitPrice
+             });
+        }
+        
+        displayMartingalePyramidPlan(plan, asset);
+        
+        const lastPosition = plan[plan.length - 1];
+        displaySummary(`
+            <p>总计买入 ${buys} 次，总投入 <span class="font-bold text-white">$${lastPosition.cumulativeInvestment.toFixed(2)}</span>。</p>
+            <p>最终持仓均价为 <span class="font-bold text-yellow-400">$${lastPosition.avgPrice.toFixed(2)}</span>。</p>
+        `);
+    }
+
+    function generateGridStrategy() {
+        const asset = document.getElementById('asset').value;
+        const startPrice = parseFloat(document.getElementById('startPrice').value);
+        const lowerPrice = parseFloat(document.getElementById('gridLowerPrice').value);
+        const gridCount = parseInt(document.getElementById('gridCount').value);
+        const totalInvestment = parseFloat(document.getElementById('totalInvestment').value);
+        const profitPercent = parseFloat(document.getElementById('gridProfit').value) / 100;
+
+        if(startPrice <= lowerPrice) {
+            alert("起始价格必须高于网格最低价。");
+            return;
+        }
+
+        warningMessage.classList.add('hidden');
+
+        const priceRange = startPrice - lowerPrice;
+        const priceInterval = priceRange / (gridCount - 1);
+        const investmentPerGrid = totalInvestment / gridCount;
+
+        let plan = [];
+        for (let i = 0; i < gridCount; i++) {
+            const buyPrice = startPrice - (priceInterval * i);
+            const sellPrice = buyPrice * (1 + profitPercent);
+            const assetAmount = investmentPerGrid / buyPrice;
+            const profitPerGrid = (sellPrice - buyPrice) * assetAmount;
+
+            plan.push({
+                grid: i + 1,
+                buyPrice,
+                sellPrice,
+                investment: investmentPerGrid,
+                profit: profitPerGrid,
+            });
+        }
+        
+        displayGridPlan(plan);
+        const totalProfit = plan.reduce((sum, row) => sum + row.profit, 0);
+        displaySummary(`
+            <p>在 <span class="font-bold text-white">$${startPrice.toFixed(2)} - $${lowerPrice.toFixed(2)}</span> 区间内，布置 ${gridCount} 个买单。</p>
+            <p>每个买单成交后，自动在对应卖出价挂单。此为典型的网格“高抛低吸”操作。</p>
+            <p>如果所有网格均完成一次买卖，预估总利润为 <span class="font-bold text-green-400">$${totalProfit.toFixed(2)}</span> (未计算手续费)。</p>
+        `);
+    }
+
+    // --- UI Helper Functions ---
+    function clearResults() {
+        welcomeMessage.classList.remove('hidden');
+        planContainer.innerHTML = '';
+        warningMessage.classList.add('hidden');
+        summaryDiv.classList.add('hidden');
+    }
+
+    function displayMartingalePyramidPlan(plan, asset) {
+        welcomeMessage.classList.add('hidden');
+        planContainer.innerHTML = plan.map(row => `
+            <div class="bg-gray-800 p-4 rounded-lg shadow-md">
+                <h4 class="font-bold text-lg text-cyan-400 mb-3 border-b border-gray-700 pb-2">仓位 ${row.level}</h4>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    <div><span class="text-gray-400">买入价格:</span> <span class="font-semibold">$${row.buyPrice.toFixed(2)}</span></div>
+                    <div><span class="text-gray-400">投入金额:</span> <span class="font-semibold">$${row.investment.toFixed(2)}</span></div>
+                    <div><span class="text-gray-400">获得 ${asset}:</span> <span class="font-semibold">${row.assetAmount.toFixed(4)}</span></div>
+                    <div><span class="text-gray-400">累计投入:</span> <span class="font-semibold">$${row.cumulativeInvestment.toFixed(2)}</span></div>
+                    <div class="col-span-2 mt-2 pt-2 border-t border-gray-700">
+                        <span class="text-gray-400">当前均价:</span> <span class="text-xl text-yellow-400 font-bold">$${row.avgPrice.toFixed(2)}</span>
+                    </div>
+                    <div class="col-span-2">
+                        <span class="text-gray-400">建议止盈:</span> <span class="text-xl text-green-400 font-bold">$${row.takeProfitPrice.toFixed(2)}</span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    function displayGridPlan(plan) {
+         welcomeMessage.classList.add('hidden');
+         planContainer.innerHTML = plan.map(row => `
+            <div class="bg-gray-800 p-4 rounded-lg shadow-md">
+                <h4 class="font-bold text-lg text-cyan-400 mb-3 border-b border-gray-700 pb-2">网格 ${row.grid}</h4>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    <div>
+                        <span class="text-gray-400">挂买单价格:</span> 
+                        <span class="text-xl font-bold text-red-400">$${row.buyPrice.toFixed(2)}</span>
+                    </div>
+                     <div>
+                        <span class="text-gray-400">挂卖单价格:</span> 
+                        <span class="text-xl font-bold text-green-400">$${row.sellPrice.toFixed(2)}</span>
+                    </div>
+                    <div class="col-span-2 mt-2 pt-2 border-t border-gray-700">
+                        <span class="text-gray-400">单格投入:</span> <span class="font-semibold">$${row.investment.toFixed(2)}</span>
+                    </div>
+                     <div class="col-span-2">
+                        <span class="text-gray-400">单格利润:</span> <span class="font-semibold text-green-300">$${row.profit.toFixed(2)}</span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function displaySummary(htmlContent) {
+        summaryDiv.innerHTML = htmlContent;
+        summaryDiv.classList.remove('hidden');
+    }
+
+</script>
+</body>
+</html>
