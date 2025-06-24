@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AMM 流动性挖矿 (LP) 收益与无常损失计算器 (美元计价增强版)</title>
+    <title>AMM 流动性挖矿 (LP) 收益与无常损失计算器 (Bug修复版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -168,7 +168,7 @@
                     <div class="bg-gray-800 p-4 rounded-lg">
                         <h3 class="font-semibold text-lg text-gray-300 mb-2">仓位详情</h3>
                         <div class="grid grid-cols-2 gap-4 text-sm">
-                            <div><p class="text-gray-400">初始总价值 ($)</p><p id="initialValue" class="font-semibold"></p></div>
+                            <div><p class="text-gray-400">LP 初始价值 ($)</p><p id="initialValue" class="font-semibold"></p></div>
                             <div><p class="text-gray-400">协议模型</p><p id="protocolUsed" class="font-semibold"></p></div>
                             <div><p class="text-gray-400">实际投入 <span id="tokenA-name-res"></span></p><p id="tokenAAmount" class="font-semibold"></p></div>
                             <div><p class="text-gray-400">实际投入 <span id="tokenB-name-res"></span></p><p id="tokenBAmount" class="font-semibold"></p></div>
@@ -254,21 +254,19 @@
         function performCalculations() {
             errorMessage.style.display = 'none';
 
-            // 1. Get all input values and parse them
+            // 1. Get all input values
             const protocol = protocolSelect.value;
             const tokenA_name = tokenAInput.value || 'Token A';
             const tokenB_name = tokenBInput.value || 'Token B';
             
-            let amountA_input = parseFloat(document.getElementById('amountA').value);
-            let amountB_input = parseFloat(document.getElementById('amountB').value);
+            const amountA_input = parseFloat(document.getElementById('amountA').value);
+            const amountB_input = parseFloat(document.getElementById('amountB').value);
             const singleAmount = parseFloat(document.getElementById('single-amount').value);
             const singleTokenType = document.getElementById('single-token-select').value;
 
-            // NEW: USD price inputs
             const priceA_initial_usd = parseFloat(document.getElementById('priceA_initial_usd').value);
             const priceA_future_usd = parseFloat(document.getElementById('priceA_future_usd').value);
             
-            // Relative price inputs
             const currentPrice_relative = parseFloat(document.getElementById('currentPrice_relative').value);
             const futurePrice_relative = parseFloat(document.getElementById('futurePrice_relative').value);
 
@@ -302,37 +300,38 @@
                 }
             }
             
-            // 3. Derive secondary prices
-            const priceB_initial_usd = priceA_initial_usd / currentPrice_relative;
-            const priceB_future_usd = priceA_future_usd / futurePrice_relative;
-
-            // 4. Handle Asymmetric Liquidity Provision
+            // 3. Define the user's starting position for HODL calculation (THE FIX!)
+            let hodlAmountA, hodlAmountB;
             if (liquidityMode === 'single') {
                 if (singleTokenType === 'A') {
-                    const totalValueUSD = singleAmount * priceA_initial_usd;
-                    amountA_input = totalValueUSD / 2 / priceA_initial_usd;
-                    amountB_input = totalValueUSD / 2 / priceB_initial_usd;
-                } else { // Token B
-                    const totalValueUSD = singleAmount * priceB_initial_usd;
-                    amountA_input = totalValueUSD / 2 / priceA_initial_usd;
-                    amountB_input = totalValueUSD / 2 / priceB_initial_usd;
+                    hodlAmountA = singleAmount;
+                    hodlAmountB = 0;
+                } else {
+                    hodlAmountA = 0;
+                    hodlAmountB = singleAmount;
                 }
+            } else {
+                hodlAmountA = amountA_input;
+                hodlAmountB = amountB_input;
             }
 
-            // 5. Core Calculations
-            let hodlValue, lpValue, ilValue, ilPercentage, apy = 0;
-            let actualInitialAmountA, actualInitialAmountB, initialValueUSD;
+            // 4. Derive secondary prices & calculate future HODL value
+            const priceB_initial_usd = priceA_initial_usd / currentPrice_relative;
+            const priceB_future_usd = priceA_future_usd / futurePrice_relative;
+            const hodlValue = hodlAmountA * priceA_future_usd + hodlAmountB * priceB_future_usd;
 
+            // 5. Core LP Calculations
+            let lpValue, apy = 0;
+            let actualInitialAmountA, actualInitialAmountB, lpInitialValueUSD;
+            
             if (protocol === 'uniswap_v2') {
-                actualInitialAmountA = amountA_input;
-                actualInitialAmountB = amountB_input;
-
-                const k = actualInitialAmountA * actualInitialAmountB;
-                const priceRatio = futurePrice_relative / currentPrice_relative;
+                let initialValueForSwap = hodlAmountA * priceA_initial_usd + hodlAmountB * priceB_initial_usd;
+                actualInitialAmountA = initialValueForSwap / 2 / priceA_initial_usd;
+                actualInitialAmountB = initialValueForSwap / 2 / priceB_initial_usd;
                 
+                const k = actualInitialAmountA * actualInitialAmountB;
                 const lpAmountA_future = Math.sqrt(k / futurePrice_relative);
                 const lpAmountB_future = Math.sqrt(k * futurePrice_relative);
-                
                 lpValue = lpAmountA_future * priceA_future_usd + lpAmountB_future * priceB_future_usd;
                 
                 if (tvl > 0) apy = (dailyVolume * feeTier / tvl) * 365 * 100;
@@ -342,14 +341,26 @@
                 const sqrtPa = Math.sqrt(lowerBound);
                 const sqrtPb = Math.sqrt(upperBound);
                 const sqrtPf = Math.sqrt(futurePrice_relative);
-                
-                const L_from_A = amountA_input * sqrtP * sqrtPb / (sqrtPb - sqrtP);
-                const L_from_B = amountB_input / (sqrtP - sqrtPa);
-                const L = Math.min(L_from_A, L_from_B);
-                
-                actualInitialAmountA = L * (1/sqrtP - 1/sqrtPb);
-                actualInitialAmountB = L * (sqrtP - sqrtPa);
-                
+
+                let L = 0;
+                // Calculate L based on input. This is now the definitive L calculation.
+                if (liquidityMode === 'single') {
+                    if (singleTokenType === 'A') {
+                        if (currentPrice_relative < upperBound) { L = hodlAmountA * sqrtP * sqrtPb / (sqrtPb - sqrtP); }
+                    } else { // Token B
+                        if (currentPrice_relative > lowerBound) { L = hodlAmountB / (sqrtP - sqrtPa); }
+                    }
+                } else { // Balanced
+                    const L_from_A = hodlAmountA * sqrtP * sqrtPb / (sqrtPb - sqrtP);
+                    const L_from_B = hodlAmountB / (sqrtP - sqrtPa);
+                    L = Math.min(L_from_A, L_from_B);
+                }
+
+                // Based on L, find the actual token amounts that form the LP
+                actualInitialAmountA = (L > 0 && sqrtP < sqrtPb) ? L * (1/sqrtP - 1/sqrtPb) : 0;
+                actualInitialAmountB = (L > 0 && sqrtP > sqrtPa) ? L * (sqrtP - sqrtPa) : 0;
+
+                // Calculate future LP token amounts
                 let lpAmountA_future, lpAmountB_future;
                 if (futurePrice_relative <= lowerBound) {
                     lpAmountA_future = 0;
@@ -367,22 +378,27 @@
                 if (tvl > 0 && upperBound > lowerBound) {
                     const basePoolApy = (dailyVolume * feeTier / tvl) * 365 * 100;
                     const concentrationFactor = currentPrice_relative / (upperBound - lowerBound);
-                    apy = basePoolApy * Math.min(concentrationFactor, 50); // Cap factor
+                    apy = basePoolApy * Math.min(concentrationFactor, 50);
                 }
             }
             
-            // 6. Final P&L Calculations (common for both protocols)
-            initialValueUSD = actualInitialAmountA * priceA_initial_usd + actualInitialAmountB * priceB_initial_usd;
-            hodlValue = actualInitialAmountA * priceA_future_usd + actualInitialAmountB * priceB_future_usd;
-            ilValue = lpValue - hodlValue;
-            ilPercentage = hodlValue > 0 ? (ilValue / hodlValue) * 100 : 0;
+            // For balanced deposits, the true HODL comparison should be against the assets actually used.
+            if (liquidityMode === 'balanced') {
+                hodlAmountA = actualInitialAmountA;
+                hodlAmountB = actualInitialAmountB;
+            }
             
-            const totalFeeEarnings = initialValueUSD * (apy / 100) * (investmentDuration / 365);
+            lpInitialValueUSD = actualInitialAmountA * priceA_initial_usd + actualInitialAmountB * priceB_initial_usd;
+            
+            // 6. Final P&L Calculations
+            const ilValue = lpValue - hodlValue;
+            const ilPercentage = hodlValue > 0 ? (ilValue / hodlValue) * 100 : 0;
+            const totalFeeEarnings = lpInitialValueUSD * (apy / 100) * (investmentDuration / 365);
             const netProfitVsHodl = ilValue + totalFeeEarnings;
 
             // 7. Display Results
             displayResults({
-                initialValue: initialValueUSD, hodlValue, lpValue, ilValue, ilPercentage,
+                initialValue: lpInitialValueUSD, hodlValue, lpValue, ilValue, ilPercentage,
                 apy, protocol, totalFeeEarnings, netProfitVsHodl,
                 tokenA: { name: tokenA_name, amount: actualInitialAmountA },
                 tokenB: { name: tokenB_name, amount: actualInitialAmountB },
@@ -408,7 +424,7 @@
             
             const netProfitElem = document.getElementById('netProfit');
             netProfitElem.textContent = formatCurrency(data.netProfitVsHodl);
-            netProfitElem.className = `text-2xl font-bold ${data.netProfitVsHodl < 0 ? 'text-red-400' : 'text-green-400'}`;
+            netProfitElem.className = `text-2xl font-bold ${data.netProfitVsHodl < 0 ? 'text-red-400' : 'text-red-400'}`;
 
             document.getElementById('apy').textContent = `${data.apy.toFixed(2)}%`;
             
@@ -432,3 +448,4 @@
     </script>
 </body>
 </html>
+
